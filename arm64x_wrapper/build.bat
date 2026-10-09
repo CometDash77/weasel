@@ -34,7 +34,7 @@ if not exist %VSWHERE% (
   exit /b 1
 )
 
-for /f "usebackq tokens=*" %%i in (`%VSWHERE% -latest -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64EC -property installationPath`) do (
+for /f "usebackq tokens=*" %%i in (`%VSWHERE% -products * -latest -requires Microsoft.VisualStudio.Component.VC.Tools.ARM64EC -property installationPath`) do (
   set ARM64EC_TOOLCHAIN=%%i
 )
 
