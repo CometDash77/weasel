@@ -1,6 +1,7 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "WeaselServerApp.h"
 #include <filesystem>
+#include "PredictSettingsEntry.h"
 
 WeaselServerApp::WeaselServerApp()
     : m_handler(std::make_unique<RimeWithWeaselHandler>(&m_ui)),
@@ -73,4 +74,7 @@ void WeaselServerApp::SetupMenuHandlers() {
                           std::bind(explore, WeaselUserDataPath()));
   m_server.AddMenuHandler(ID_WEASELTRAY_LOGDIR,
                           std::bind(explore, WeaselLogPath()));
+  // S4：模型预测设置入口（侧车 GUI exe 的 settings 子命令）。
+  m_server.AddMenuHandler(ID_WEASELTRAY_PREDICT_SETTINGS,
+                          [] { return weasel::RunPredictSettingsEntry(); });
 }
