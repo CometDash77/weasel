@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <WeaselIPCData.h>
 #include <WeaselPredictNotify.h>
+#include <WeaselPredictContext.h>
 #include <WeaselUtility.h>
 #include <windows.h>
 #include <functional>
@@ -33,6 +34,7 @@ enum WEASEL_IPC_COMMAND {
   WEASEL_IPC_SELECT_CANDIDATE_ON_CURRENT_PAGE,
   WEASEL_IPC_HIGHLIGHT_CANDIDATE_ON_CURRENT_PAGE,
   WEASEL_IPC_CHANGE_PAGE,
+  WEASEL_IPC_PREDICT_CONTEXT,
   WEASEL_IPC_LAST_COMMAND
 };
 
@@ -87,6 +89,7 @@ struct RequestHandler {
   virtual void EndMaintenance() {}
   virtual void SetOption(DWORD session_id, const std::string& opt, bool val) {}
   virtual void UpdateColorTheme(BOOL darkMode) {}
+  virtual void PredictContext(DWORD session_id, LPWSTR buffer) {}
 };
 
 // 處理server端回應之物件
@@ -108,6 +111,8 @@ class ServerImpl;
 class Client {
  public:
   Client();
+  // pipe_name overload lets tests connect on an isolated pipe
+  explicit Client(const std::wstring& pipe_name);
   virtual ~Client();
 
   // 连接到服务，必要时启动服务进程
@@ -148,6 +153,10 @@ class Client {
   void TrayCommand(UINT menuId);
   // 读取server返回的数据
   bool GetResponseData(ResponseHandler handler);
+  // S2: 推送编辑器上文三态
+  bool UpdatePredictContext(predict_context::Status status,
+                            const std::wstring& preceding_text,
+                            const std::wstring& revision);
 
  private:
   ClientImpl* m_pImpl;
@@ -156,6 +165,8 @@ class Client {
 class Server {
  public:
   Server();
+  // pipe_name overload lets tests listen on an isolated pipe
+  explicit Server(const std::wstring& pipe_name);
   virtual ~Server();
 
   // 初始化服务

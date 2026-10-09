@@ -205,6 +205,28 @@ DWORD RimeWithWeaselHandler::FindSession(WeaselSessionId ipc_id) {
   return found ? (ipc_id) : 0;
 }
 
+void RimeWithWeaselHandler::PredictContext(WeaselSessionId ipc_id,
+                                           LPWSTR buffer) {
+  if (m_disabled || !ipc_id)
+    return;
+  auto it = m_session_status_map.find(ipc_id);
+  if (it == m_session_status_map.end())
+    return;
+  RimeSessionId session_id = it->second.session_id;
+  if (!session_id || !rime_api->find_session(session_id))
+    return;
+  predict_context::ParsedBody parsed;
+  if (!predict_context::ParseBody(buffer, &parsed))
+    return;
+  // ApplyToSession writes preceding_text, then revision, then status last,
+  // so a concurrent reader never sees status=ok with stale text.
+  predict_context::ApplyToSession(
+      parsed, [session_id](const char* key, const char* value) -> bool {
+        rime_api->set_property(session_id, key, value);
+        return true;
+      });
+}
+
 DWORD RimeWithWeaselHandler::AddSession(LPWSTR buffer, EatLine eat) {
   if (m_disabled) {
     DLOG(INFO) << "Trying to resume service.";

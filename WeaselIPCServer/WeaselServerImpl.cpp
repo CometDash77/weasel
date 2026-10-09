@@ -34,9 +34,14 @@ static_assert(sizeof(void*) != 8 || sizeof(COPYDATASTRUCT) == 24,
 extern CAppModule _Module;
 
 ServerImpl::ServerImpl()
+    : ServerImpl(GetPipeName()) {}
+
+// The pipe-name overload exists so tests can listen on an isolated pipe
+// instead of racing a live Weasel server for the production pipe.
+ServerImpl::ServerImpl(std::wstring pipe_name)
     : m_pRequestHandler(NULL),
       m_darkMode(IsUserDarkMode()),
-      channel(std::make_unique<PipeServer>(GetPipeName(), sa.get_attr())) {
+      channel(std::make_unique<PipeServer>(std::move(pipe_name), sa.get_attr())) {
   m_hUser32Module = GetModuleHandle(_T("user32.dll"));
 }
 
@@ -385,6 +390,19 @@ LRESULT ServerImpl::OnCopyData(UINT uMsg,
   return 1;
 }
 
+DWORD ServerImpl::OnPredictContext(WEASEL_IPC_COMMAND uMsg,
+                                   DWORD wParam,
+                                   DWORD lParam) {
+  if (m_pRequestHandler) {
+    m_pRequestHandler->PredictContext(
+        lParam, reinterpret_cast<LPWSTR>(channel->ReceiveBuffer()));
+    // non-zero = ack, mirroring ProcessKeyEvent's eaten-result semantics;
+    // the client uses this to know the push was delivered
+    return 1;
+  }
+  return 0;
+}
+
 #define MAP_PIPE_MSG_HANDLE(__msg, __wParam, __lParam) \
   {                                                    \
     auto lParam = __lParam;                            \
@@ -423,6 +441,7 @@ void ServerImpl::HandlePipeMessage(PipeMessage pipe_msg, _Resp resp) {
   PIPE_MSG_HANDLE(WEASEL_IPC_HIGHLIGHT_CANDIDATE_ON_CURRENT_PAGE,
                   OnHighlightCandidateOnCurrentPage);
   PIPE_MSG_HANDLE(WEASEL_IPC_CHANGE_PAGE, OnChangePage);
+  PIPE_MSG_HANDLE(WEASEL_IPC_PREDICT_CONTEXT, OnPredictContext);
   PIPE_MSG_HANDLE(WEASEL_IPC_TRAY_COMMAND, OnCommand);
   END_MAP_PIPE_MSG_HANDLE(result);
 
@@ -467,6 +486,9 @@ void PipeServer::_ProcessPipeThread(HANDLE pipe, ServerHandler const& handler) {
 // weasel::Server
 
 Server::Server() : m_pImpl(new ServerImpl) {}
+
+Server::Server(const std::wstring& pipe_name)
+    : m_pImpl(new ServerImpl(pipe_name)) {}
 
 Server::~Server() {
   if (m_pImpl)

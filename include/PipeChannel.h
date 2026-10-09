@@ -105,7 +105,11 @@ class PipeChannel : public PipeChannelBase {
 
   char* SendBuffer() const { return buffer.get() + _MsgSize; }
 
-  char* ReceiveBuffer() const { return buffer.get() + _ResSize; }
+  /* Body of the message just received. _Receive reads the fixed header into
+     a local variable first; on ERROR_MORE_DATA the remainder of the message
+     (the body) is read into buffer[0], so the body starts at offset 0, NOT
+     at _ResSize. Callers that want the wire body use this pointer. */
+  char* ReceiveBuffer() const { return buffer.get(); }
 
   template <typename _TyHandler>
   bool HandleResponseData(_TyHandler const& handler) {
@@ -157,7 +161,9 @@ class PipeChannel : public PipeChannelBase {
   }
 
   inline size_t _ReceiveBufferSizeW() const {
-    return (buff_size - _ResSize) * sizeof(char) / sizeof(wchar_t);
+    // _Receive fills buffer from offset 0: the fixed header goes to a local
+    // variable, so the whole receive buffer carries message payload.
+    return buff_size * sizeof(char) / sizeof(wchar_t);
   }
 };
 };  // namespace weasel

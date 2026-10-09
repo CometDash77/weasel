@@ -458,6 +458,7 @@
     </ClCompile>
     <ClCompile Include="EditSession.cpp" />
     <ClCompile Include="EnumDisplayAttributeInfo.cpp" />
+    <ClCompile Include="PredictContext.cpp" />
     <ClCompile Include="Globals.cpp" />
     <ClCompile Include="KeyEvent.cpp" />
     <ClCompile Include="KeyEventSink.cpp" />

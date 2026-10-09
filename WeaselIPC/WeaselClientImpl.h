@@ -1,5 +1,6 @@
 #pragma once
 #include <WeaselIPC.h>
+#include <WeaselPredictContext.h>
 #include <PipeChannel.h>
 
 namespace weasel {
@@ -7,6 +8,7 @@ namespace weasel {
 class ClientImpl {
  public:
   ClientImpl();
+  explicit ClientImpl(std::wstring pipe_name);
   ~ClientImpl();
 
   bool Connect(ServerLauncher const& launcher);
@@ -28,6 +30,10 @@ class ClientImpl {
   void FocusOut();
   void TrayCommand(UINT menuId);
   bool GetResponseData(ResponseHandler const& handler);
+  // S2: push the editor preceding-context tri-state
+  bool UpdatePredictContext(predict_context::Status status,
+                            const std::wstring& preceding_text,
+                            const std::wstring& revision);
 
  protected:
   void _InitializeClientInfo();

@@ -3,6 +3,7 @@
 #include "Globals.h"
 #include <WeaselIPC.h>
 #include <WeaselIPCData.h>
+#include <WeaselPredictContext.h>
 
 class CCandidateList;
 class CLangBarItemButton;
@@ -130,6 +131,12 @@ class WeaselTSF : public ITfTextInputProcessorEx,
   /* IPC */
   bool _EnsureServerConnected();
 
+  /* Predict context (S2) */
+  void _UpdatePredictContext(com_ptr<ITfContext> pContext, TfEditCookie ec);
+  void _SendPredictContext(weasel::predict_context::Status status,
+                           const std::wstring& preceding_text,
+                           const std::wstring& revision);
+
   /* UI */
   void _UpdateUI(const weasel::Context& ctx, const weasel::Status& status);
   void _StartUI();
@@ -233,4 +240,7 @@ class WeaselTSF : public ITfTextInputProcessorEx,
   BOOL _async_edit = false;
   BOOL _committed = false;
   BOOL _isToOpenClose = false;
+
+  /* last successfully-sent predict-context wire body, for change detection */
+  std::wstring _lastPredictBody;
 };

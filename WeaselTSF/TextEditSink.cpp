@@ -20,6 +20,9 @@ static BOOL IsRangeCovered(TfEditCookie ec,
 STDAPI WeaselTSF::OnEndEdit(ITfContext* pContext,
                             TfEditCookie ecReadOnly,
                             ITfEditRecord* pEditRecord) {
+  /* S2: every edit transaction refreshes the preceding-context tri-state */
+  _UpdatePredictContext(pContext, ecReadOnly);
+
   BOOL fSelectionChanged;
   IEnumTfRanges* pEnumTextChanges;
   ITfRange* pRange;

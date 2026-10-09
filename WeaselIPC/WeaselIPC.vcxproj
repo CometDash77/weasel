@@ -281,6 +281,7 @@
     <ClCompile Include="Configurator.cpp" />
     <ClCompile Include="Deserializer.cpp" />
     <ClCompile Include="PipeChannel.cpp" />
+    <ClCompile Include="PredictContext.cpp" />
     <ClCompile Include="ResponseParser.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>

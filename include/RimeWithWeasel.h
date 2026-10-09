@@ -6,6 +6,8 @@
 
 #include <rime_api.h>
 
+#include <WeaselPredictContext.h>
+
 struct CaseInsensitiveCompare {
   bool operator()(const std::string& str1, const std::string& str2) const {
     std::string str1Lower, str2Lower;
@@ -62,6 +64,9 @@ class RimeWithWeaselHandler : public weasel::RequestHandler {
                          const std::string& opt,
                          bool val);
   virtual void UpdateColorTheme(BOOL darkMode);
+
+  // S2: editor preceding-context tri-state pushed by the TSF client
+  virtual void PredictContext(WeaselSessionId ipc_id, LPWSTR buffer);
 
   void OnUpdateUI(std::function<void()> const& cb);
 

@@ -1,11 +1,15 @@
 ﻿#include "stdafx.h"
 #include "WeaselClientImpl.h"
 #include <StringAlgorithm.hpp>
+#include <WeaselPredictContext.h>
+#include <algorithm>
 
 using namespace weasel;
 
-ClientImpl::ClientImpl()
-    : session_id(0), channel(GetPipeName()), is_ime(false) {
+ClientImpl::ClientImpl() : ClientImpl(GetPipeName()) {}
+
+ClientImpl::ClientImpl(std::wstring pipe_name)
+    : session_id(0), channel(std::move(pipe_name)), is_ime(false) {
   _InitializeClientInfo();
 }
 
@@ -182,6 +186,20 @@ bool ClientImpl::GetResponseData(ResponseHandler const& handler) {
   return channel.HandleResponseData(handler);
 }
 
+bool ClientImpl::UpdatePredictContext(predict_context::Status status,
+                                      const std::wstring& preceding_text,
+                                      const std::wstring& revision) {
+  if (!_Active())
+    return false;
+  // embedded NULs would truncate the line-based wire body
+  std::wstring text = preceding_text;
+  text.erase(std::remove(text.begin(), text.end(), L'\0'), text.end());
+  const std::wstring body =
+      predict_context::BuildBody(status, escape_string<wchar_t>(text), revision);
+  channel << body.c_str();
+  return _SendMessage(WEASEL_IPC_PREDICT_CONTEXT, 0, session_id) != 0;
+}
+
 bool ClientImpl::_WriteClientInfo() {
   channel << L"action=session\n";
   channel << L"session.client_app=" << app_name.c_str() << L"\n";
@@ -202,6 +220,9 @@ LRESULT ClientImpl::_SendMessage(WEASEL_IPC_COMMAND Msg,
 }
 
 Client::Client() : m_pImpl(new ClientImpl()) {}
+
+Client::Client(const std::wstring& pipe_name)
+    : m_pImpl(new ClientImpl(pipe_name)) {}
 
 Client::~Client() {
   if (m_pImpl)
@@ -282,4 +303,10 @@ bool Client::Echo() {
 
 bool Client::GetResponseData(ResponseHandler handler) {
   return m_pImpl->GetResponseData(handler);
+}
+
+bool Client::UpdatePredictContext(predict_context::Status status,
+                                  const std::wstring& preceding_text,
+                                  const std::wstring& revision) {
+  return m_pImpl->UpdatePredictContext(status, preceding_text, revision);
 }

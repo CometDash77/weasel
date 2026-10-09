@@ -225,6 +225,8 @@ void WeaselTSF::_Reconnect() {
   m_client.Disconnect();
   m_client.Connect(NULL);
   m_client.StartSession();
+  /* fresh session: server-side properties are empty again */
+  _lastPredictBody.clear();
   weasel::ResponseParser parser(NULL, NULL, &_status, NULL, &_cand->style());
   bool ok = m_client.GetResponseData(std::ref(parser));
   if (ok) {

@@ -1,0 +1,5 @@
+target("TestPredictContext")
+  set_kind("binary")
+  add_files("TestPredictContext.cpp")
+  add_deps("WeaselIPC", "WeaselIPCServer")
+  add_rules("subwin")

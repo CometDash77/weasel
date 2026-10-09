@@ -60,6 +60,7 @@ if is_mode("debug") then
   includes("test/TestResponseParser")
   includes("test/TestPredictNotify")
   includes("test/TestPredictSettingsMenu")
+  includes("test/TestPredictContext")
 else
   add_cxflags("/GL")
   add_ldflags("/LTCG /INCREMENTAL:NO", {force = true})
