@@ -26,6 +26,11 @@ class PipeServer : public PipeChannel<DWORD, PipeMessage> {
 
 using namespace weasel;
 
+// x64 COPYDATASTRUCT contract: ULONG_PTR dwData + DWORD cbData + padding +
+// PVOID lpData = 24 bytes; the sidecar sender lays out the same 24 bytes.
+static_assert(sizeof(void*) != 8 || sizeof(COPYDATASTRUCT) == 24,
+              "x64 COPYDATASTRUCT must be 24 bytes");
+
 extern CAppModule _Module;
 
 ServerImpl::ServerImpl()
@@ -356,6 +361,28 @@ DWORD ServerImpl::OnChangePage(WEASEL_IPC_COMMAND uMsg,
     m_pRequestHandler->ChangePage(wParam, lParam, eat);
   }
   return 0;
+}
+
+// S3 completion-notify receiver: WM_COPYDATA from the sidecar on the
+// private IPC window. Foreign dwData falls through (bHandled = FALSE);
+// anything bearing our COPYDATA id is consumed and parsed strictly, and
+// malformed payloads are swallowed silently before reaching the handler.
+LRESULT ServerImpl::OnCopyData(UINT uMsg,
+                               WPARAM wParam,
+                               LPARAM lParam,
+                               BOOL& bHandled) {
+  const auto* cds = reinterpret_cast<const COPYDATASTRUCT*>(lParam);
+  if (!cds || cds->dwData != WEASEL_PREDICT_NOTIFY_COPYDATA_ID) {
+    bHandled = FALSE;
+    return 0;
+  }
+  bHandled = TRUE;
+  auto notify = ParsePredictNotifyPayload(
+      static_cast<const char*>(cds->lpData), static_cast<size_t>(cds->cbData));
+  if (notify && m_pRequestHandler) {
+    m_pRequestHandler->PredictCompletion(*notify);
+  }
+  return 1;
 }
 
 #define MAP_PIPE_MSG_HANDLE(__msg, __wParam, __lParam) \

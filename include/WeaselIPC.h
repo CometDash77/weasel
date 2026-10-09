@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <WeaselIPCData.h>
+#include <WeaselPredictNotify.h>
 #include <WeaselUtility.h>
 #include <windows.h>
 #include <functional>
@@ -74,6 +75,11 @@ struct RequestHandler {
   virtual bool ChangePage(bool backward, DWORD session_id, EatLine eat) {
     return false;
   }
+  // S3: the sidecar's completion notice (WM_COPYDATA on the private IPC
+  // window; payload already parsed by the transport layer). Implementations
+  // gate it against the session's published request identity and flip the
+  // refresh option to recompose. Default no-op keeps plain handlers intact.
+  virtual void PredictCompletion(const PredictNotify& notify) {}
   virtual void FocusIn(DWORD param, DWORD session_id) {}
   virtual void FocusOut(DWORD param, DWORD session_id) {}
   virtual void UpdateInputPosition(RECT const& rc, DWORD session_id) {}

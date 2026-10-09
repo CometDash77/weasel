@@ -385,6 +385,48 @@ bool RimeWithWeaselHandler::ChangePage(bool backward,
   return res;
 }
 
+// S3: the sidecar reported a landed prediction response for the given
+// identity. Gate it against the identity the focused session's Lua
+// component published as RIME properties; on a match flip the private
+// refresh option once, which makes librime refresh the non-confirmed
+// composition and recompose without any keypress. Anything unmatched stays
+// silent: a notice never blocks nor alters normal input.
+void RimeWithWeaselHandler::PredictCompletion(
+    const weasel::PredictNotify& notify) {
+  if (!rime_api || m_active_session == 0) {
+    return;
+  }
+  auto found = m_session_status_map.find(m_active_session);
+  if (found == m_session_status_map.end() || found->second.session_id == 0) {
+    return;
+  }
+  RimeSessionId session_id = found->second.session_id;
+  char buffer[64];
+  if (!rime_api->get_property(session_id, weasel::kPredictEngineIdProperty,
+                              buffer, sizeof(buffer))) {
+    return;
+  }
+  std::string engine_id(buffer);
+  if (!rime_api->get_property(session_id, weasel::kPredictRequestIdProperty,
+                              buffer, sizeof(buffer))) {
+    return;
+  }
+  std::string request_id(buffer);
+  if (!rime_api->get_property(session_id, weasel::kPredictRequestSeqProperty,
+                              buffer, sizeof(buffer))) {
+    return;
+  }
+  std::string request_seq(buffer);
+  if (!weasel::PredictIdentityMatches(engine_id, request_id, request_seq,
+                                      notify)) {
+    return;
+  }
+  Bool current =
+      rime_api->get_option(session_id, weasel::kPredictRefreshOption);
+  rime_api->set_option(session_id, weasel::kPredictRefreshOption,
+                       current ? False : True);
+}
+
 void RimeWithWeaselHandler::FocusIn(DWORD client_caps, WeaselSessionId ipc_id) {
   DLOG(INFO) << "Focus in: ipc_id = " << ipc_id
              << ", client_caps = " << client_caps;
