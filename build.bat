@@ -17,6 +17,8 @@ if not defined WEASEL_BUILD set WEASEL_BUILD=0
 
 rem use numeric build version for release build
 set PRODUCT_VERSION=%WEASEL_VERSION%.%WEASEL_BUILD%
+rem fork: predict releases append -predict.N to file name and ProductVersion string
+if defined RELEASE_BUILD set PRODUCT_VERSION=%WEASEL_VERSION%-predict.%WEASEL_BUILD%
 rem for non-release build, try to use git commit hash as product build version
 if not defined RELEASE_BUILD (
   rem check if git is installed and available, then get the short commit id of head
