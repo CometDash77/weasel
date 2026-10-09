@@ -72,6 +72,9 @@ std::string Nul(const std::string& body) {
   return bytes;
 }
 
+// Defined below; SendNotify needs it before its definition.
+BOOL SendRaw(HWND wnd, DWORD dw_data, const std::string& bytes);
+
 // Sends a payload the way the sidecar does: UTF-8 bytes + terminating NUL,
 // cbData counting the NUL.
 BOOL SendNotify(HWND wnd, const std::string& payload) {
