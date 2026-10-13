@@ -82,6 +82,21 @@ jobs:
         shell: pwsh
         run: output\7z.exe a -t7z "./output/archives/debug_symbols.7z" "output/*.pdb" -r
 
+      - name: Pack pinned payload zip (deterministic x64+x86 extraction source)
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $required = @('weaselx64.dll','WeaselSetup.exe','WeaselServer.exe','rime.dll','WeaselDeployer.exe','WinSparkle.dll','LICENSE.txt','README.txt','start_service.bat','stop_service.bat','Win32\weasel.dll')
+          foreach ($f in $required) {
+            if (-not (Test-Path "output\$f")) { throw "missing payload file output\$f" }
+          }
+          Push-Location output
+          try {
+            & .\7z.exe a -tzip "..\output\archives\predict-x64-payload.zip" $required | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "7z payload pack failed" }
+          } finally { Pop-Location }
+          & .\output\7z.exe l ".\output\archives\predict-x64-payload.zip"
+
       - name: SHA256 manifest
         id: sha
         shell: pwsh
@@ -100,6 +115,7 @@ jobs:
           draft: true
           files: |
             ./output/archives/weasel-0.17.4-predict.*-installer.exe
+            ./output/archives/predict-x64-payload.zip
             ./output/archives/debug_symbols.7z
             ./output/archives/sha256.txt
           body: |
@@ -109,6 +125,7 @@ jobs:
 
             ### 下载
             - 安装器：weasel-0.17.4-predict.${{ env.WEASEL_BUILD }}-installer.exe
+            - 固定清单载荷：predict-x64-payload.zip（主仓库构建器按哈希提取的确定性来源）
             - 调试符号：debug_symbols.7z
             - sha256 清单：sha256.txt
 
