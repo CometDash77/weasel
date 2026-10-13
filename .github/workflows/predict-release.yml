@@ -1,0 +1,122 @@
+name: Predict Release CI
+
+on:
+  push:
+    tags:
+      - 'predict-*'
+  workflow_dispatch:
+    inputs:
+      predict_build:
+        description: 'predict build number N (0.17.4-predict.N)'
+        required: false
+        default: '2'
+
+jobs:
+  build-and-release:
+    permissions:
+      contents: write
+    runs-on: windows-2019
+    env:
+      boost_version: 1.84.0
+      BOOST_ROOT: ${{ github.workspace }}\deps\boost_1_84_0
+      RELEASE_BUILD: 1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+          fetch-depth: 0
+
+      - name: Resolve WEASEL_BUILD
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.event_name }}" = "push" ]; then
+            N="${GITHUB_REF##*.}"
+          else
+            N="${{ github.event.inputs.predict_build }}"
+          fi
+          echo "WEASEL_BUILD=$N" >> "$GITHUB_ENV"
+          echo "build N=$N"
+
+      - name: Configure build environment
+        shell: bash
+        run: cp env.vs2019.bat env.bat
+
+      - name: Cache Boost
+        id: cache-boost
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.BOOST_ROOT }}
+          key: ${{ runner.os }}-boost-${{ env.boost_version }}
+
+      - name: Install Boost
+        if: steps.cache-boost.outputs.cache-hit != 'true'
+        shell: bash
+        run: |
+          ./install_boost.bat
+          ./build.bat boost arm64
+
+      - name: Add msbuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Get Rime files
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\get-rime.ps1 -use dev
+
+      - name: Install NSIS 3.10
+        shell: pwsh
+        run: choco install nsis --version=3.10 -y --force --no-progress
+
+      - name: Build data
+        run: .\build.bat data
+
+      - name: Build Weasel predict.${{ env.WEASEL_BUILD }}
+        run: .\build.bat arm64 installer
+
+      - name: Compress Debug Symbols
+        shell: pwsh
+        run: output\7z.exe a -t7z "./output/archives/debug_symbols.7z" "output/*.pdb" -r
+
+      - name: SHA256 manifest
+        id: sha
+        shell: pwsh
+        run: |
+          $lines = Get-ChildItem ./output/archives -File | ForEach-Object {
+            $h = (Get-FileHash $_ -Algorithm SHA256).Hash.ToLower()
+            "$h  $($_.Name)"
+          }
+          $lines | Out-File ./output/archives/sha256.txt -Encoding utf8
+          Get-Content ./output/archives/sha256.txt | ForEach-Object { Write-Host $_ }
+
+      - name: Release predict.${{ env.WEASEL_BUILD }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          draft: true
+          files: |
+            ./output/archives/weasel-0.17.4-predict.*-installer.exe
+            ./output/archives/debug_symbols.7z
+            ./output/archives/sha256.txt
+          body: |
+            ## 小狼毫（Weasel）模型预测版 0.17.4-predict.${{ env.WEASEL_BUILD }}
+
+            基于 fork 分支 predict-0.17.4（上游 rime/weasel 0.17.4），由 GitHub Actions windows-2019（VS2019 BuildTools v142 + SDK 10.0.19041）构建。
+
+            ### 下载
+            - 安装器：weasel-0.17.4-predict.${{ env.WEASEL_BUILD }}-installer.exe
+            - 调试符号：debug_symbols.7z
+            - sha256 清单：sha256.txt
+
+            ### 版本与上游基底
+            - 上游基底：rime/weasel 0.17.4（release commit 9cc96e20dc71b80876b12f689bb5863c76c2a7ed）
+            - librime：上游 0.17.4 子模块指针 1c23358157934bd6e6d6981f0c0164f05393b497（librime 1.13.1 官方预编译包，零改动）
+            - 构建时 RELEASE_BUILD=1、WEASEL_BUILD=${{ env.WEASEL_BUILD }}，ProductVersion 字符串 0.17.4-predict.${{ env.WEASEL_BUILD }}
+
+            ### GPL-3 源码义务
+            - fork 源码 tag：https://github.com/CometDash77/weasel/archive/refs/tags/${{ github.ref_name }}.tar.gz
+            - librime 子模块：https://github.com/rime/librime（commit 1c23358157934bd6e6d6981f0c0164f05393b497，未修改）
+            - 主仓库组件：https://github.com/CometDash77/RIME-PredictInput
