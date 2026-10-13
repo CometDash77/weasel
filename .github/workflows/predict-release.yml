@@ -20,6 +20,7 @@ jobs:
       boost_version: 1.84.0
       BOOST_ROOT: ${{ github.workspace }}\deps\boost_1_84_0
       RELEASE_BUILD: 1
+      WINDOWS_TARGET_PLATFORM_VERSION: 10.0.19041.0
 
     steps:
       - name: Checkout
