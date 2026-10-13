@@ -10,6 +10,3 @@ rem set ARCH=Win32
 set BJAM_TOOLSET=msvc-14.3
 set CMAKE_GENERATOR="Visual Studio 17 2022"
 set PLATFORM_TOOLSET=v143
-
-rem OPTIONAL: path to additional build tools
-rem set DEVTOOLS_PATH=%ProgramFiles%\Git\cmd;%ProgramFiles%\Git\usr\bin;%ProgramFiles%\CMake\bin;
