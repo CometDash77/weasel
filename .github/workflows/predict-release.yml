@@ -86,7 +86,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $required = @('weaselx64.dll','WeaselSetup.exe','WeaselServer.exe','rime.dll','WeaselDeployer.exe','WinSparkle.dll','LICENSE.txt','README.txt','start_service.bat','stop_service.bat','Win32\weasel.dll')
+          $required = @('weaselx64.dll','weasel.dll','WeaselSetup.exe','WeaselServer.exe','rime.dll','WeaselDeployer.exe','WinSparkle.dll','LICENSE.txt','README.txt','start_service.bat','stop_service.bat')
           foreach ($f in $required) {
             if (-not (Test-Path "output\$f")) { throw "missing payload file output\$f" }
           }
