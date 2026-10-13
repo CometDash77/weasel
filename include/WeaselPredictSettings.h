@@ -41,7 +41,7 @@ inline constexpr wchar_t kPredictSettingsEntryValue[] = L"SettingsEntryEnabled";
 inline constexpr wchar_t kPredictSidebarPathValue[] = L"SidebarExe";
 
 // 安装目录下的侧车 GUI exe 相对路径（S8 冻结候选）。
-inline constexpr wchar_t kPredictSidebarDirName[] = L"ModelPredict";
+inline constexpr wchar_t kPredictSidebarDirName[] = L"predict";
 inline constexpr wchar_t kPredictSidebarExeName[] =
     L"rime-predict-sidecar-gui.exe";
 
